@@ -1,0 +1,34 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>kajshdkjas</title>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js"></script>
+        <script type="text/javascript" language="javascript">
+            var mqtt;
+            var reconnectTimeout = 2000;
+            var host = "172.31.68.214";
+            var port = 9001;
+
+            function onConnect() {
+                console.log("Connected");
+                message = new Paho.MQTT.Message("Hello World");
+                message.destinationName = "sensor1";
+                mqtt.send(message);
+            }
+
+            function MQTTconnect() {
+                console.log("Connected to " + host + " " + port);
+                mqtt = new Paho.MQTT.Client(host, port, "Clientjs");
+                var options = {
+                    timeout: 3,
+                    onSuccess: onConnect,
+                };
+                mqtt.connect(options);
+            }
+        </script>
+    </head>
+    <body>
+        <script type="text/javascript">MQTTconnect();</script>
+    </body>
+</html>
+
