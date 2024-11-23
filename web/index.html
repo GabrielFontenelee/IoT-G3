@@ -1,43 +1,105 @@
 <html>
-    <head>
-        <meta charset="utf-8">
-        <title>kajshdkjas</title>
-        <script type="text/javascript"
-          src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js">
-        </script>
-        <script type="text/javascript" language="javascript">
-            var mqtt;
-            var reconnectTimeout = 2000;
-            var host = "192.168.1.102";
-            var port = 9001;
+  <head>
+      <meta charset="utf-8">
+      <title>Motion Sensor</title>
+      <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js">
+      </script>
+      <script type="text/javascript" language="javascript">
+          var mqtt;
+          var reconnectTimeout = 2000;
 
-            function readFromSensor(response){
-              console.log("a message was received");
-              console.log(response.payloadString);
-            }
+          function printResponseToLog(response){
+            console.log("a message was received");
+            console.log(response.payloadString);
+          }
+          
+
+          /* @brief callback function for when the client connects to server
+           */
+          function onSuccessCallback(){
+            console.log("Connect sucessfull");
+            subscribeClientToTopic("test/topic",printResponseToLog);
+          }
+
+          
+          /* @brief make mqtt client subscribed to the given topic & set
+           * 'callback' as the function to be executed if a message is
+           * sucessfully received 
+           *
+           * @param topic string '/' separated list of names
+           * @param callback function function that receives a single variable &
+           * returns nothing 
+           * @bug can only register one function per topic
+           */
+          function subscribeClientToTopic(topic,callback) {
+            mqtt.subscribe(topic);
+            mqtt.onMessageArrived = callback;
+          }
+
+
+          /* @brief read the value in ip_textarea and, if it's valid, return the
+           *        ip address as a string
+           *
+           * Checks only for ammount of sections in ip & that every section is a
+           * number between 0 and 255
+           *
+           * @return the ip address as a string
+           */
+          function readIP(){
+            host =  document.getElementById("ip_textarea").value.trim();
+            
+            // checking that every section is a valid number
+            ip_sections_str = host.split('.');
+
+            ip_sections_num = ip_sections_str.map(Number).filter(n=> !isNaN(n));
+
+            ip_valid_sections = ip_sections_num.filter(n=>(n<=255 && n>=0));
+
+            // if text is an IP, every single section should be valid
+            if(ip_valid_sections.length != 4) 
+              throw new Error("text isn't an IP");
+
+            return host;
+          }
+
+
+          /* @brief attempts to connect to server
+           * 
+           * also sets onSuccessCallback as callback function in case the
+           * connection is successfull
+           * 
+           * @param host string ipv4 of the host as a string
+           * @bug only one connection can be maintained at a time
+           */
+          function MQTTconnect(host) {
+              var port = 9001; // port configured with the HTTP server
+
+              console.log("Attempting to connect to " + host + " " + port);
+              
+              // describe the client and the server it should connect to 
+              mqtt = new Paho.MQTT.Client(host, port, "frontend client");
             
 
-            function onConnect() {
-              console.log("Connect sucessfull");
-              mqtt.subscribe("test/topic");
-              mqtt.onMessageArrived = readFromSensor;
-            }
+              var options = {
+                  timeout: 3,
+                  onSuccess: onSuccessCallback,
+              };
 
-            function MQTTconnect() {
-                console.log("Connected to " + host + " " + port);
-                mqtt = new Paho.MQTT.Client(host, port, "");
-                var options = {
-                    timeout: 3,
-                    onSuccess: onConnect,
-                };
-                mqtt.connect(options);
-            }
+              // attempt to connect client to its server
+              mqtt.connect(options);
+          }
 
 
-        </script>
-    </head>
-    <body>
-        <script type="text/javascript">MQTTconnect();</script>
-    </body>
+      </script>
+  </head>
+  <body>
+    <div>
+      <p> ip address of mqtt server: </p>
+      <textarea id="ip_textarea" style="resize:none;"></textarea>
+    </div>
+    <button onclick="MQTTconnect(readIP());">connect to server</button>
+      <!--      <script type="text/javascript">MQTTconnect();</script> -->
+  </body>
 </html>
 
