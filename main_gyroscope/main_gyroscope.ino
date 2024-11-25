@@ -1,11 +1,17 @@
 #include <Arduino_LSM9DS1.h>
 
 float x_a, y_a, z_a;
+float xprev_a = 0, yprev_a = 0, zprev_a = 0;
 float x_g, y_g, z_g;
-uint8_t movement = 0;
-const float threshold = 1.0; // Ajuste conforme necessário
+float xprev_g = 0, yprev_g = 0, zprev_g = 0;
 
-void processMovement(uint8_t movement);
+float offset_a [3] = {0,0,0}; // ax, ay, az 
+float offset_g [3] = {0, 0, 0}; // gx, gy, gz
+
+const float delta_gyro = 5;
+const float delta_acce = 0.05;
+
+void calibrateSensor();
 
 void setup() {
   // put your setup code here, to run once:
@@ -20,95 +26,174 @@ void setup() {
     while(1);
   }
 
+  Serial.print("Gyroscope sample rate = ");
+  Serial.print(IMU.gyroscopeSampleRate());
+  Serial.println(" Hz");
+  Serial.println();
+  Serial.println("Gyroscope in degrees/second");
+  Serial.println("X\tY\tZ");
+
+  Serial.print("Accelerometer sample rate = ");
+  Serial.print(IMU.accelerationSampleRate());
+  Serial.println(" Hz");
+  Serial.println();
+  Serial.println("Acceleration in g's");
+  Serial.println("X\tY\tZ");
+
+  calibrateSensor();
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
 
-//Serial.println("Hello IMU ! \n");
+  bool moveRight = false;
+  bool moveLeft = false;
+  bool moveUp = false;
+  bool moveDown = false;
+  bool rotateCW = false;
+  bool rotateCCW = false;
 
-  // Take measures
-if (IMU.accelerationAvailable()){
+  if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(x_a, y_a, z_a);
 
-    movement = 0;
+    // Subtrair offsets
+    x_a -= offset_a[0];
+    y_a -= offset_a[1];
+    z_a -= offset_a[2];
 
-    if (x_a > threshold) {
-      movement |= 0x01; // Direita
-    } else if (x_a < -threshold) {
-      movement |= 0x02; // Esquerda
+    float dx_a = x_a - xprev_a;
+    float dy_a = y_a - yprev_a;
+    float dz_a = z_a - zprev_a;
+
+    // Atualiza 
+    xprev_a = x_a;
+    yprev_a = y_a;
+    zprev_a = z_a;
+
+    // Detecção de movimentos
+    if (dy_a > delta_acce ) {
+      moveRight = true;
+    } else if (dy_a < -delta_acce) {
+      moveLeft = true;
     }
 
-    if (z_a > threshold) {
-      movement |= 0x04; // Ascendente
-    } else if (z_a < -threshold) {
-      movement |= 0x08; // Descendente
+    if (dx_a > delta_acce) {
+      moveDown = true;
+    } else if (dx_a < -delta_acce) {
+      moveUp = true;
     }
+
+    // Imprimir valores para depuração
+   /*
+    Serial.print("Aceleração: x=");
+    Serial.print(x_a);
+    Serial.print(", y=");
+    Serial.print(y_a);
+    Serial.print(", z=");
+    Serial.println(z_a);
+  */
   }
 
-  if(IMU.gyroscopeAvailable()){
+  if (IMU.gyroscopeAvailable()) {
     IMU.readGyroscope(x_g, y_g, z_g);
 
-    if (z_g > threshold) {
-      movement |= 0x10; // Circular horário
-    } else if (z_g < -threshold) {
-      movement |= 0x20; // Circular anti-horário
+    float dx_g = x_g - xprev_g;
+    float dy_g = y_g - yprev_g;
+    float dz_g = z_g - zprev_g;
+
+    // Atualiza 
+    xprev_g = x_g;
+    yprev_g = y_g;
+    zprev_g = z_g;
+
+
+    if (dz_g > delta_gyro) {
+      rotateCCW = true;
+    } else if (dz_g < -delta_gyro) {
+      rotateCW = true;
     }
+
+    // Imprimir valores para depuração
+    /*
+    Serial.print("Giroscópio: x_g=");
+    Serial.print(x_g);
+    Serial.print(", y_g=");
+    Serial.print(y_g);
+    Serial.print(", z_g=");
+    Serial.println(z_g);
+    */
   }
-  
-  processMovement(movement);
+
+  // Processamento dos movimentos
+  if (moveRight) {
+    Serial.println("Movimento para a direita detectado");
+    // Acender luz azul
+  }
+  if (moveLeft) {
+    Serial.println("Movimento para a esquerda detectado");
+    // Acender luz verde
+  }
+  if (moveUp) {
+    Serial.println("Movimento ascendente detectado");
+    // Acender luz vermelha
+  }
+  if (moveDown) {
+    Serial.println("Movimento descendente detectado");
+    // Acender luz amarela
+  }
+  if (rotateCW) {
+    Serial.println("Movimento circular horário detectado");
+    // Acender luz branca fixa
+  }
+  if (rotateCCW) {
+    Serial.println("Movimento circular anti-horário detectado");
+    // Acender luz branca piscando
+  }
+
+  delay(100);
+
 }
 
-void processMovement(uint8_t movement){
-
-  if(movement == 0x00){
-    printf("No movement detected !\n");
-    return;
-  }
-
-  uint8_t red = 0, green = 0, blue = 0;
-
-  switch (movement){
-
-    case 0x04:
-      Serial.println("Ascending movement\n");
-      //rgbLedWrite(RGB_BUILTIN, 255, 0, 0);  // Red
-      break;
-
-    case 0x02:
-      Serial.println("Left movement \n");
-      //rgbLedWrite(RGB_BUILTIN, 0, 255, 0);  // Green
-    break;
-
-    case 0x01:
-      Serial.println("Right movement \n");
-      //rgbLedWrite(RGB_BUILTIN, 0, 0, 255);  // Blue
-    break;
-
-    case 0x08:
-      Serial.println("Descending movement \n");
-      //rgbLedWrite(RGB_BUILTIN, 255, 255, 0);  // Yellow
-    break;
-
-    case 0x20:
-      Serial.println("Circle anti clock wise \n");
-      //rgbLedWrite(RGB_BUILTIN, 255, 255, 255);  // White
-      delay(100);
-      //rgbLedWrite(RGB_BUILTIN, 0, 0, 0);  // Off
-      delay(100);
-      //rgbLedWrite(RGB_BUILTIN, 255, 255, 255);  // White
-    break;
-
-    case 0x10:
-      Serial.println("Circle clock wise : Fix white \n");
-      //rgbLedWrite(RGB_BUILTIN, 255, 255, 255);  // White
-
-    break;
-
-    default:
-      Serial.println("Case not related \n");
-      break;
-
+void calibrateSensor() {
+  const int calibrationSamples = 100;
+  for (int i = 0; i < calibrationSamples; i++) {
+    if (IMU.gyroscopeAvailable()) {
+      IMU.readGyroscope(x_g, y_g, z_g);
+      offset_g[0] += x_g;
+      offset_g[1] += y_g;
+      offset_g[2] += z_g;
     }
+    if (IMU.accelerationAvailable()) {
+      IMU.readAcceleration(x_a, y_a, z_a);
+      offset_a[0] += x_a;
+      offset_a[1] += y_a;
+      offset_a[2] += z_a;
+    }
+    delay(10);
+  }
+  offset_a[0] /= calibrationSamples;
+  offset_a[1] /= calibrationSamples;
+  offset_a[2] /= calibrationSamples;
+
+  offset_g[0] /= calibrationSamples;
+  offset_g[1] /= calibrationSamples;
+  offset_g[2] /= calibrationSamples;
+
+  Serial.println("Calibração concluída");
+  Serial.print("Offsets Accelerometre: x=");
+  Serial.print(offset_a[0]);
+  Serial.print(", y=");
+  Serial.print(offset_a[1]);
+  Serial.print(", z=");
+  Serial.println(offset_a[2]);
+
+  Serial.print("Offsets Gyroscope: x=");
+  Serial.print(offset_g[0]);
+  Serial.print(", y=");
+  Serial.print(offset_g[1]);
+  Serial.print(", z=");
+  Serial.println(offset_g[2]);
 }
+
 
