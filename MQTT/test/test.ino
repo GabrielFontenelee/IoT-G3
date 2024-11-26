@@ -14,7 +14,7 @@
 
 const char WIFI_SSID[] = "Felipe2";              // CHANGE TO YOUR WIFI SSID
 const char WIFI_PASSWORD[] = "natitqm7";           // CHANGE TO YOUR WIFI PASSWORD
-const char MQTT_BROKER_ADRRESS[] = "192.168.14.187";  // CHANGE TO MQTT BROKER'S IP ADDRESS
+const char MQTT_BROKER_ADRRESS[] = "192.168.17.29";  // CHANGE TO MQTT BROKER'S IP ADDRESS
 const int MQTT_PORT = 1883;
 const char MQTT_USERNAME[] = "";  // CHANGE IT IF REQUIRED
 const char MQTT_PASSWORD[] = "";  // CHANGE IT IF REQUIRED
@@ -39,13 +39,14 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   Serial.println("ESP32 - Connecting to Wi-Fi");
-
+ 
+  rgbLedWrite(RGB_BUILTIN, 64, 0, 0);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
   Serial.println();
-
+  rgbLedWrite(RGB_BUILTIN, 0, 0, 64);
   connectToMQTT();
 }
 
@@ -79,19 +80,23 @@ void connectToMQTT() {
   }
 
   // Subscribe to a topic, the incoming messages are processed by messageHandler() function
-  if (mqtt.subscribe(SUBSCRIBE_TOPIC))
+  if (mqtt.subscribe(SUBSCRIBE_TOPIC)) {
     Serial.print("ESP32 - Subscribed to the topic: ");
-  else
+    rgbLedWrite(RGB_BUILTIN, 0, 64, 0);
+  } else {
     Serial.print("ESP32 - Failed to subscribe to the topic: ");
-
+    rgbLedWrite(RGB_BUILTIN, 64, 0, 0);
+  }
   Serial.println(SUBSCRIBE_TOPIC);
   Serial.println("ESP32  - MQTT broker Connected!");
 }
 
 void sendToMQTT() {
   StaticJsonDocument<200> message;
-  message["timestamp"] = millis();
-  message["data"] = analogRead(0);  // Or you can read data from other sensors
+  message["x"] = 8;
+  message["y"] = 8;
+  message["z"] = 8;
+  message["r"] = 8;
   char messageBuffer[512];
   serializeJson(message, messageBuffer);
 
