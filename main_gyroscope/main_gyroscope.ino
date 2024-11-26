@@ -1,5 +1,7 @@
 #include <Arduino_LSM9DS1.h>
 
+#define DT 10
+
 float x_a, y_a, z_a;
 float xprev_a = 0, yprev_a = 0, zprev_a = 0;
 float x_g, y_g, z_g;
@@ -11,7 +13,10 @@ float offset_g [3] = {0, 0, 0}; // gx, gy, gz
 const float delta_gyro = 5;
 const float delta_acce = 0.05;
 
+uint8_t movement; 
+
 void calibrateSensor();
+unsigned long waitNextPeriod();
 
 void setup() {
   // put your setup code here, to run once:
@@ -47,6 +52,8 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
+  waitNextPeriod();
+
   bool moveRight = false;
   bool moveLeft = false;
   bool moveUp = false;
@@ -74,14 +81,18 @@ void loop() {
     // Detecção de movimentos
     if (dy_a > delta_acce ) {
       moveRight = true;
+      movement = 0x01;
     } else if (dy_a < -delta_acce) {
       moveLeft = true;
+      movement = 0x02;
     }
 
     if (dx_a > delta_acce) {
       moveDown = true;
+      movement = 0x03;
     } else if (dx_a < -delta_acce) {
       moveUp = true;
+      movement = 0x04;
     }
 
     // Imprimir valores para depuração
@@ -110,8 +121,10 @@ void loop() {
 
     if (dz_g > delta_gyro) {
       rotateCCW = true;
+      movement = 0x05;
     } else if (dz_g < -delta_gyro) {
       rotateCW = true;
+      movement = 0x06;
     }
 
     // Imprimir valores para depuração
@@ -150,6 +163,8 @@ void loop() {
     Serial.println("Movimento circular anti-horário detectado");
     // Acender luz branca piscando
   }
+
+  Serial.println(movement);
 
   delay(100);
 
@@ -196,4 +211,13 @@ void calibrateSensor() {
   Serial.println(offset_g[2]);
 }
 
+unsigned long waitNextPeriod() {
+  static unsigned long last_time = 0;
+  unsigned long current_time = millis();
+  while ((current_time - last_time) < DT) {
+    current_time = millis();
+  }
+  last_time = current_time;
+  return current_time;
+}
 
