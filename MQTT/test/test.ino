@@ -94,9 +94,9 @@ void connectToMQTT() {
 void sendToMQTT() {
   StaticJsonDocument<200> message;
   message["x"] = 8;
-  message["y"] = 8;
-  message["z"] = 8;
-  message["r"] = 8;
+  message["y"] = 9;
+  message["z"] = 10;
+  message["r"] = 11;
   char messageBuffer[512];
   serializeJson(message, messageBuffer);
 

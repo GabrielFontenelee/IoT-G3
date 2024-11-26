@@ -27,7 +27,7 @@ ifconfig |  grep 192.168 | cut --delimiter ' ' --fields 10
 4. Test MQTT server
 Terminal 1: `mosquitto -v -c test.conf`
 Terminal 2: `mosquitto_sub -h $IP -p 1883 -t esp32-001/send`
-Terminal 3: `mosquitto_pub -h 192.168.17.29 -t esp32-001/send -m testpa`
+Terminal 3: `mosquitto_pub -h $IP -t esp32-001/send -m testpa -i terminal`
 
 Yout should see a message in Terminal 2 and logs in Terminal 1.
 
