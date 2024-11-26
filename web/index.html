@@ -29,6 +29,10 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
+    var mqtt = new Paho.MQTT.Client("192.168.17.29", 8080, "frontend-client");
+
+    var functionOnMessage = null;
+
     // React Component to render and move the circle
     const MovingCircle = ({ coordinates }) => {
       const [x, y, z, theta, color] = coordinates;
@@ -72,13 +76,15 @@
           moveCircle(x, y, z, theta);
         };
 
+        functionOnMessage = onMessage;
+
         // MQTT setup
-        const mqtt = new Paho.MQTT.Client("localhost", 9001, "frontend-client");
+        //const mqtt = new Paho.MQTT.Client("192.168.17.29", 8080, "frontend-client");
         mqtt.onMessageArrived = onMessage;
         mqtt.connect({
           onSuccess: () => {
             console.log("MQTT connected");
-            mqtt.subscribe("test/coordinates");
+            mqtt.subscribe("esp32-001/send");
           },
         });
 
@@ -110,6 +116,16 @@
 
     function MQTTconnect(host) {
       console.log(`Connecting to MQTT broker at ${host}`);
+
+      mqtt = new Paho.MQTT.Client(host, 8080, "frontend-client");
+
+      mqtt.onMessageArrived = functionOnMessage;
+        mqtt.connect({
+          onSuccess: () => {
+            console.log("MQTT connected");
+            mqtt.subscribe("esp32-001/send");
+          },
+        });
     }
   </script>
 </body>
