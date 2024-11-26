@@ -14,11 +14,9 @@
 
 
 #include <BLEDevice.h>
-#include <BLEUtils.h>
 #include <BLEServer.h>
 #include <WiFi.h>
 #include <MQTTClient.h>
-#include <ArduinoJson.h>
 
 #define CLIENT_ID "ESP32-001"  // CHANGE IT AS YOU DESIRE
 
@@ -32,7 +30,6 @@ const char MQTT_PASSWORD[] = "";  // CHANGE IT IF REQUIRED
 // The MQTT topics that this device should publish/subscribe
 #define PUBLISH_TOPIC "esp32-001/send"
 #define SUBSCRIBE_TOPIC "esp32-001/send"
-
 #define PUBLISH_INTERVAL 5000  // 4 seconds
 
 WiFiClient network;
@@ -62,12 +59,14 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       print_binary(int_val);
     }
 
+    
     bool get_bit(uint32_t num, uint32_t position)
     {
       bool bit = num & (1 << position);
       return bit;
     }
-
+    
+    
     void print_binary(uint32_t num)
     {
       Serial.print("binary: ");
@@ -77,13 +76,12 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       }
       Serial.println(" -- ");
     }
+    
 };
 
 void setup() {
   Serial.begin(115200);
 
-  // set the ADC attenuation to 11 dB (up to ~3.3V input)
-  analogSetAttenuation(ADC_11db);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
@@ -97,6 +95,28 @@ void setup() {
   Serial.println();
   rgbLedWrite(RGB_BUILTIN, 0, 0, 64);
   connectToMQTT();
+
+  // setup Bluetooth
+  BLEDevice::init("LorenzzonGato");
+  BLEServer *pServer = BLEDevice::createServer();
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+  pCharacteristic = pService->createCharacteristic(
+                                         CHARACTERISTIC_UUID,
+                                         BLECharacteristic::PROPERTY_READ |
+                                         BLECharacteristic::PROPERTY_WRITE
+                                       );
+
+  pCharacteristic->setCallbacks(new MyCallbacks()); 
+  pCharacteristic->setValue("hola");
+  pService->start();
+  // BLEAdvertising *pAdvertising = pServer->getAdvertising();  // this still is working for backward compatibility
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
+  pAdvertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
+  Serial.println("Characteristic defined! Now you can read it in your phone!");
 }
 
 void loop() {
@@ -107,6 +127,7 @@ void loop() {
     lastPublishTime = millis();
   }
 }
+
 
 void connectToMQTT() {
   // Connect to the MQTT broker
@@ -140,34 +161,15 @@ void connectToMQTT() {
   Serial.println("ESP32  - MQTT broker Connected!");
 }
 
+
 void sendToMQTT() {
-  StaticJsonDocument<200> message;
-  message["x"] = 8;
-  message["y"] = 9;
-  message["z"] = 10;
-  message["r"] = 11;
-  char messageBuffer[512];
-  serializeJson(message, messageBuffer);
-
-  mqtt.publish(PUBLISH_TOPIC, messageBuffer);
-
-  Serial.println("ESP32 - sent to MQTT:");
-  Serial.print("- topic: ");
-  Serial.println(PUBLISH_TOPIC);
-  Serial.print("- payload:");
-  Serial.println(messageBuffer);
+  mqtt.publish(PUBLISH_TOPIC, "8,9,10,11");
 }
+
 
 void messageHandler(String &topic, String &payload) {
   Serial.println("ESP32 - received from MQTT:");
   Serial.println("- topic: " + topic);
   Serial.println("- payload:");
   Serial.println(payload);
-
-  // You can process the incoming data as json object, then control something
-  /*
-  StaticJsonDocument<200> doc;
-  deserializeJson(doc, payload);
-  const char* message = doc["message"];
-  */
 }

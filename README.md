@@ -33,6 +33,8 @@ Yout should see a message in Terminal 2 and logs in Terminal 1.
 
 5. Upload MQTT to the esp32 and check that it connected to WiFi
 
+Change partition size to 8MB
+
 Temporarilly disable your firewall for it to connect or add an exception for Mosquitto on port 1883.
 
 6. Upload main_gyroscope to Arduino equipped with Giroscope
