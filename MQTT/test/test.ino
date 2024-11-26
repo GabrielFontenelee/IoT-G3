@@ -6,6 +6,16 @@
  * For more detail (instruction and wiring diagram), visit https://esp32io.com/tutorials/esp32-mqtt
  */
 
+/*
+  Complete Getting Started Guide: https://RandomNerdTutorials.com/esp32-bluetooth-low-energy-ble-arduino-ide/
+  Based on Neil Kolban example for IDF: https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleServer.cpp
+  Ported to Arduino ESP32 by Evandro Copercini
+*/
+
+
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
 #include <WiFi.h>
 #include <MQTTClient.h>
 #include <ArduinoJson.h>
@@ -27,11 +37,50 @@ const char MQTT_PASSWORD[] = "";  // CHANGE IT IF REQUIRED
 
 WiFiClient network;
 MQTTClient mqtt = MQTTClient(256);
-
 unsigned long lastPublishTime = 0;
 
+// See the following for generating UUIDs:
+// https://www.uuidgenerator.net/
+
+#define SERVICE_UUID        "2658a61b-6efd-4760-9f41-0e8489222429"
+#define CHARACTERISTIC_UUID "ef9b96c4-c17f-45cb-bc57-0eefeaff93fd"
+
+BLECharacteristic *pCharacteristic;
+
+class MyCallbacks: public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pCharacteristic) {
+     
+     
+      String value = pCharacteristic->getValue();
+
+      uint32_t int_val = (uint32_t) value.c_str();
+
+      Serial.println("some value arrived");
+      delay(100);
+      Serial.println(value);
+      delay(100);
+      print_binary(int_val);
+    }
+
+    bool get_bit(uint32_t num, uint32_t position)
+    {
+      bool bit = num & (1 << position);
+      return bit;
+    }
+
+    void print_binary(uint32_t num)
+    {
+      Serial.print("binary: ");
+      for(int i = 31; i >= 0; i--)
+      {
+        Serial.print(get_bit(num, i));
+      }
+      Serial.println(" -- ");
+    }
+};
+
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // set the ADC attenuation to 11 dB (up to ~3.3V input)
   analogSetAttenuation(ADC_11db);
