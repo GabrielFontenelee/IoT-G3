@@ -17,6 +17,7 @@
 #include <BLEServer.h>
 #include <WiFi.h>
 #include <MQTTClient.h>
+#include <string.h>
 
 #define CLIENT_ID "ESP32-001"  // CHANGE IT AS YOU DESIRE
 
@@ -46,8 +47,6 @@ BLECharacteristic *pCharacteristic;
 
 class MyCallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
-     
-     
       String value = pCharacteristic->getValue();
 
       uint32_t int_val = (uint32_t) value.c_str();
@@ -79,9 +78,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
     
 };
 
-void setup() {
-  Serial.begin(115200);
-
+void setupWifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
@@ -94,9 +91,9 @@ void setup() {
   }
   Serial.println();
   rgbLedWrite(RGB_BUILTIN, 0, 0, 64);
-  connectToMQTT();
+}
 
-  // setup Bluetooth
+void setupBT() {
   BLEDevice::init("LorenzzonGato");
   BLEServer *pServer = BLEDevice::createServer();
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -119,12 +116,36 @@ void setup() {
   Serial.println("Characteristic defined! Now you can read it in your phone!");
 }
 
-void loop() {
-  mqtt.loop();
+void setup() {
+  
+  // recieves from serial from another ESP32
+  Serial1.begin(115200, SERIAL_8N1, 16, 17);
+  Serial.begin(115200);
 
-  if (millis() - lastPublishTime > PUBLISH_INTERVAL) {
-    sendToMQTT();
-    lastPublishTime = millis();
+  // setupWifi();
+ 
+  // connectToMQTT();
+  
+  // setupBT();
+  
+}
+
+char Mymessage[4*sizeof(float)];
+
+void loop() {
+  // mqtt.loop();
+
+  // if (millis() - lastPublishTime > PUBLISH_INTERVAL) {
+  //   sendToMQTT();
+  //   lastPublishTime = millis();
+  // }
+  //Serial.readBytes(Mymessage,5); //Read the //Serial data and store in var
+  //Serial.println(Mymessage); //Print data on //Serial Monitor
+  // Serial.println("Loop");
+  if (Serial1.available()) {
+    String recebido = Serial1.readString();
+    Serial.println("Recebi a mensagem seguinte:");
+    Serial.println(recebido);
   }
 }
 
@@ -134,7 +155,7 @@ void connectToMQTT() {
   mqtt.begin(MQTT_BROKER_ADRRESS, MQTT_PORT, network);
 
   // Create a handler for incoming messages
-  mqtt.onMessage(messageHandler);
+  // mqtt.onMessage(messageHandler);
 
   Serial.print("ESP32 - Connecting to MQTT broker");
 
@@ -150,20 +171,20 @@ void connectToMQTT() {
   }
 
   // Subscribe to a topic, the incoming messages are processed by messageHandler() function
-  if (mqtt.subscribe(SUBSCRIBE_TOPIC)) {
-    Serial.print("ESP32 - Subscribed to the topic: ");
-    rgbLedWrite(RGB_BUILTIN, 0, 64, 0);
-  } else {
-    Serial.print("ESP32 - Failed to subscribe to the topic: ");
-    rgbLedWrite(RGB_BUILTIN, 64, 0, 0);
-  }
-  Serial.println(SUBSCRIBE_TOPIC);
-  Serial.println("ESP32  - MQTT broker Connected!");
+  // if (mqtt.subscribe(SUBSCRIBE_TOPIC)) {
+    //Serial.print("ESP32 - Subscribed to the topic: ");
+    // rgbLedWrite(RGB_BUILTIN, 0, 64, 0);
+  // } else {
+    //Serial.print("ESP32 - Failed to subscribe to the topic: ");
+    // rgbLedWrite(RGB_BUILTIN, 64, 0, 0);
+  // }
+  //Serial.println(SUBSCRIBE_TOPIC);
+  //Serial.println("ESP32  - MQTT broker Connected!");
 }
 
 
 void sendToMQTT() {
-  mqtt.publish(PUBLISH_TOPIC, "8,9,10,11");
+  mqtt.publish(PUBLISH_TOPIC, Mymessage);
 }
 
 
