@@ -36,7 +36,7 @@ const char MQTT_PASSWORD[] = "";  // CHANGE IT IF REQUIRED
 WiFiClient network;
 MQTTClient mqtt = MQTTClient(256);
 unsigned long lastPublishTime = 0;
-
+String message;
 // See the following for generating UUIDs:
 // https://www.uuidgenerator.net/
 
@@ -122,15 +122,13 @@ void setup() {
   Serial1.begin(115200, SERIAL_8N1, 16, 17);
   Serial.begin(115200);
 
-  // setupWifi();
+  setupWifi();
  
-  // connectToMQTT();
+  connectToMQTT();
   
   // setupBT();
   
 }
-
-char Mymessage[4*sizeof(float)];
 
 void loop() {
   // mqtt.loop();
@@ -143,9 +141,13 @@ void loop() {
   //Serial.println(Mymessage); //Print data on //Serial Monitor
   // Serial.println("Loop");
   if (Serial1.available()) {
-    String recebido = Serial1.readString();
+
+    message = Serial1.readString();
+    
     Serial.println("Recebi a mensagem seguinte:");
-    Serial.println(recebido);
+    Serial.println(message);
+    connectToMQTT();
+    sendToMQTT();
   }
 }
 
@@ -184,7 +186,7 @@ void connectToMQTT() {
 
 
 void sendToMQTT() {
-  mqtt.publish(PUBLISH_TOPIC, Mymessage);
+  mqtt.publish(PUBLISH_TOPIC, message);
 }
 
 
