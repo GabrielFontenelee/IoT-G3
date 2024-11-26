@@ -1,105 +1,116 @@
-<html>
-  <head>
-      <meta charset="utf-8">
-      <title>Motion Sensor</title>
-      <script type="text/javascript"
-        src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js">
-      </script>
-      <script type="text/javascript" language="javascript">
-          var mqtt;
-          var reconnectTimeout = 2000;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Motion Sensor</title>
+  <!-- React and ReactDOM -->
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Paho MQTT -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js"></script>
+  <style>
+    /* Add smooth animation for the circle */
+    .moving-circle {
+      transition: transform 0.5s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <p>IP address of MQTT server:</p>
+    <textarea id="ip_textarea" style="resize:none;"></textarea>
+  </div>
+  <button onclick="MQTTconnect(readIP());">Connect to server</button>
+  <div id="root"></div>
 
-          function printResponseToLog(response){
-            console.log("a message was received");
-            console.log(response.payloadString);
-          }
-          
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-          /* @brief callback function for when the client connects to server
-           */
-          function onSuccessCallback(){
-            console.log("Connect sucessfull");
-            subscribeClientToTopic("test/topic",printResponseToLog);
-          }
+    // React Component to render and move the circle
+    const MovingCircle = ({ coordinates }) => {
+      const [x, y, z, theta, color] = coordinates;
 
-          
-          /* @brief make mqtt client subscribed to the given topic & set
-           * 'callback' as the function to be executed if a message is
-           * sucessfully received 
-           *
-           * @param topic string '/' separated list of names
-           * @param callback function function that receives a single variable &
-           * returns nothing 
-           * @bug can only register one function per topic
-           */
-          function subscribeClientToTopic(topic,callback) {
-            mqtt.subscribe(topic);
-            mqtt.onMessageArrived = callback;
-          }
+      return (
+        <svg width="500" height="500" style={{ border: "1px solid black" }}>
+          <g
+            className="moving-circle"
+            style={{ transform: `translate(${x}px, ${y}px) rotate(${theta}deg) scale(${1 + z / 100})` }}
+          >
+            {/* Circle */}
+            <circle cx="0" cy="0" r="20" fill="#f00a" />
+            {/* Arrow inside circle */}
+            <polygon points="0,-20 5,-10 -5,-10" fill="black" />
+          </g>
+          <g>
+            {/* Cross */}
+            <line x1="125" y1="250" x2="375" y2="250" stroke="black" strokeWidth="2" />
+            <line x1="250" y1="125" x2="250" y2="375" stroke="black" strokeWidth="2" />
 
+            {/* Center circle reference */}
+            <circle cx="250" cy="250" r="20" fill="#0004" />
+          </g>
+        </svg>
+      );
+    };
 
-          /* @brief read the value in ip_textarea and, if it's valid, return the
-           *        ip address as a string
-           *
-           * Checks only for ammount of sections in ip & that every section is a
-           * number between 0 and 255
-           *
-           * @return the ip address as a string
-           */
-          function readIP(){
-            host =  document.getElementById("ip_textarea").value.trim();
-            
-            // checking that every section is a valid number
-            ip_sections_str = host.split('.');
+    // React Application
+    const App = () => {
+      const [coordinates, setCoordinates] = useState([250, 250, 0, 0]); // Initial position
 
-            ip_sections_num = ip_sections_str.map(Number).filter(n=> !isNaN(n));
+      useEffect(() => {
+        const moveCircle = (x, y, z, theta) => {
+          setCoordinates([parseInt(x, 10), parseInt(y, 10), parseInt(z, 10), parseInt(theta, 10)]);
+        };
 
-            ip_valid_sections = ip_sections_num.filter(n=>(n<=255 && n>=0));
+        // Callback for received MQTT messages
+        const onMessage = (message) => {
+          console.log("Coordinates received:", message.payloadString);
+          const [x, y, z, theta] = message.payloadString.split(",").map(Number);
+          moveCircle(x, y, z, theta);
+        };
 
-            // if text is an IP, every single section should be valid
-            if(ip_valid_sections.length != 4) 
-              throw new Error("text isn't an IP");
+        // MQTT setup
+        const mqtt = new Paho.MQTT.Client("localhost", 9001, "frontend-client");
+        mqtt.onMessageArrived = onMessage;
+        mqtt.connect({
+          onSuccess: () => {
+            console.log("MQTT connected");
+            mqtt.subscribe("test/coordinates");
+          },
+        });
 
-            return host;
-          }
+        return () => {
+          mqtt.disconnect();
+        };
+      }, []);
 
+      return (
+        <div>
+          <h1>Motion Sensor</h1>
+          <MovingCircle coordinates={coordinates} />
+        </div>
+      );
+    };
 
-          /* @brief attempts to connect to server
-           * 
-           * also sets onSuccessCallback as callback function in case the
-           * connection is successfull
-           * 
-           * @param host string ipv4 of the host as a string
-           * @bug only one connection can be maintained at a time
-           */
-          function MQTTconnect(host) {
-              var port = 9001; // port configured with the HTTP server
+    // Render the App
+    ReactDOM.render(<App />, document.getElementById("root"));
 
-              console.log("Attempting to connect to " + host + " " + port);
-              
-              // describe the client and the server it should connect to 
-              mqtt = new Paho.MQTT.Client(host, port, "frontend client");
-            
+    // Helper functions
+    function readIP() {
+      const host = document.getElementById("ip_textarea").value.trim();
+      const ip_sections = host.split('.').map(Number);
+      if (ip_sections.length !== 4 || ip_sections.some((n) => isNaN(n) || n < 0 || n > 255)) {
+        throw new Error("Invalid IP address");
+      }
+      return host;
+    }
 
-              var options = {
-                  timeout: 3,
-                  onSuccess: onSuccessCallback,
-              };
-
-              // attempt to connect client to its server
-              mqtt.connect(options);
-          }
-
-
-      </script>
-  </head>
-  <body>
-    <div>
-      <p> ip address of mqtt server: </p>
-      <textarea id="ip_textarea" style="resize:none;"></textarea>
-    </div>
-    <button onclick="MQTTconnect(readIP());">connect to server</button>
-      <!--      <script type="text/javascript">MQTTconnect();</script> -->
-  </body>
+    function MQTTconnect(host) {
+      console.log(`Connecting to MQTT broker at ${host}`);
+    }
+  </script>
+</body>
 </html>
-
