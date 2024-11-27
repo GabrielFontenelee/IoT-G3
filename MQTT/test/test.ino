@@ -48,6 +48,7 @@ void loop() {
   if (Serial1.available()) {
     message = Serial1.readStringUntil('\n');
     sendToMQTT();
+    Serial.println(message);
   }
 }
 

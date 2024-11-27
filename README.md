@@ -29,7 +29,7 @@ Terminal 1: `mosquitto -v -c test.conf`
 Terminal 2: `mosquitto_sub -h $IP -p 1883 -t esp32-001/send`
 Terminal 3: `mosquitto_pub -h $IP -t esp32-001/send -m testpa -i terminal`
 
-Yout should see a message in Terminal 2 and logs in Terminal 1.
+You should see a message in Terminal 2 and logs in Terminal 1.
 
 5. Upload MQTT to the esp32 and check that it connected to WiFi
 
@@ -39,6 +39,13 @@ Temporarilly disable your firewall for it to connect or add an exception for Mos
 
 6. Upload main_gyroscope to Arduino equipped with Giroscope
 
-7. WEB
+7. Upload the BLE server to another ESP32
 
+8. Connect the the two ESP32s 
+
+In RXTX 16 17 and GND
+
+9. WEB
+
+Add another exception on the firewall
 
