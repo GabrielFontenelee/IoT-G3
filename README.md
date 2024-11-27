@@ -21,7 +21,7 @@ mosquitto -v -c test.conf
 
 3. Get your IP address
 ```sh 
-ifconfig |  grep 192.168 | cut --delimiter ' ' --fields 10
+hostname -I 
 ```
 
 4. Test MQTT server
