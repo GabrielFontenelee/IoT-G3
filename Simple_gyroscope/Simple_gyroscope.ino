@@ -1,5 +1,6 @@
 #include <ArduinoBLE.h>
 #include <Arduino_LSM9DS1.h> 
+#define BUFFER_LEN 30
 
 BLEService imuService("2658a61b-6efd-4760-9f41-0e8489222429");
 
@@ -34,7 +35,7 @@ void loop() {
  
   BLEDevice peripheral = BLE.available();
 
-    if (peripheral) {
+  if (peripheral) {
     // discovered a peripheral, print out address, local name, and advertised service
     Serial.print("Found ");
     Serial.print(peripheral.address());
@@ -56,36 +57,11 @@ void loop() {
     // peripheral disconnected, start scanning again
     BLE.scanForUuid("2658a61b-6efd-4760-9f41-0e8489222429");
   }
- /* 
-  if (central) {
-    Serial.print("Conectado a: ");
-    Serial.println(central.address());
-
-    while (central.connected()) {
-      // Ler os dados dos sensores
-      float ax, ay, az;
-      float gx, gy, gz;
-
-      if (IMU.accelerationAvailable()) {
-        IMU.readAcceleration(ax, ay, az);
-        float accelData[3] = {ax, ay, az};
-        accelCharacteristic.writeValue((byte*)accelData, sizeof(accelData));
-      }
-
-      if (IMU.gyroscopeAvailable()) {
-        IMU.readGyroscope(gx, gy, gz);
-        float gyroData[3] = {gx, gy, gz};
-        gyroCharacteristic.writeValue((byte*)gyroData, sizeof(gyroData));
-      }
-
-      delay(100); // Ajuste conforme necessário
-    }
-
-    Serial.println("Desconectado");
-  }
-*/
- // BLE.poll();
 }
+
+float ax=0, ay=0, az=0;
+float gx=0, gy=0, gz=0;
+
 
 void controlLed(BLEDevice peripheral) {
   // connect to the peripheral
@@ -110,7 +86,6 @@ void controlLed(BLEDevice peripheral) {
 
   // retrieve the LED characteristic
   BLECharacteristic teste = peripheral.characteristic("ef9b96c4-c17f-45cb-bc57-0eefeaff93fd");
-  Serial.println("teste");
   if (!teste) {
     Serial.println("Peripheral does not have LED characteristic!");
     peripheral.disconnect();
@@ -122,27 +97,24 @@ void controlLed(BLEDevice peripheral) {
   }
 
   while (peripheral.connected()) {
-    // while the peripheral is connected
-    Serial.println("Chegou no envio");
-    String message = "Olá do Arduino!";
-    teste.writeValue(message.c_str());
-
-    float ax, ay, az;
-    float gx, gy, gz;
 
     if (IMU.accelerationAvailable()) {
         IMU.readAcceleration(ax, ay, az);
         float accelData[3] = {ax, ay, az};
-        accelCharacteristic.writeValue((byte*)accelData, sizeof(accelData));
       }
       
-    /*
+    
     if (IMU.gyroscopeAvailable()) {
         IMU.readGyroscope(gx, gy, gz);
         float gyroData[3] = {gx, gy, gz};
         gyroCharacteristic.writeValue((byte*)gyroData, sizeof(gyroData));
       }
-    */
+      
+      char buffer[BUFFER_LEN];
+      memset(buffer,'\0',BUFFER_LEN);
+      sprintf(buffer, "%.2f,%.2f,%.2f,%.2f", ax,ay,az, gz);
+
+      teste.writeValue(buffer);
 
       delay(100); // Ajuste conforme necessário
 
