@@ -35,13 +35,15 @@
 
     // React Component to render and move the circle
     const MovingCircle = ({ coordinates }) => {
-      const [x, y, z, theta, color] = coordinates;
+      const [x2, y2, z2, theta2, color2] = coordinates;
+
+      const [x, y, z, theta, color] = [y2 * 100 + 250, -x2 * 100 + 250, z2, -theta2, color2];
 
       return (
         <svg width="500" height="500" style={{ border: "1px solid black" }}>
           <g
             className="moving-circle"
-            style={{ transform: `translate(${x}px, ${y}px) rotate(${theta}deg) scale(${1 + z / 100})` }}
+            style={{ transform: `translate(${x}px, ${y}px) rotate(${theta}deg) scale(${1 + z/5})` }}
           >
             {/* Circle */}
             <circle cx="0" cy="0" r="20" fill="#f00a" />
@@ -62,11 +64,12 @@
 
     // React Application
     const App = () => {
-      const [coordinates, setCoordinates] = useState([250, 250, 0, 0]); // Initial position
+      const [coordinates, setCoordinates] = useState([0, 0, 0, 0]); // Initial position
 
       useEffect(() => {
         const moveCircle = (x, y, z, theta) => {
-          setCoordinates([parseInt(x, 10), parseInt(y, 10), parseInt(z, 10), parseInt(theta, 10)]);
+          setCoordinates([parseFloat(x), parseFloat(y), parseFloat(z), parseFloat(theta)]);
+          //setCoordinates([parseInt(x, 10), parseInt(y, 10), parseInt(z, 10), parseInt(theta, 10)]);
         };
 
         // Callback for received MQTT messages
