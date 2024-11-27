@@ -31,11 +31,31 @@ WiFiClient network;
 MQTTClient mqtt = MQTTClient(256);
 String message;
 
+void setupWifi();
+void connectToMQTT();
+
+void setup() {
+  // recieves from serial from another ESP32
+  Serial1.begin(115200, SERIAL_8N1, 16, 17);
+  // For debugging
+  Serial.begin(115200);
+
+  setupWifi();
+  connectToMQTT();
+}
+
+void loop() {
+  if (Serial1.available()) {
+    message = Serial1.readStringUntil('\n');
+    sendToMQTT();
+  }
+}
+
 void setupWifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  Serial.println("ESP32 - Connecting to Wi-Fi");
+  Serial.println("Connecting to Wi-Fi");
  
   rgbLedWrite(RGB_BUILTIN, 64, 64, 0);
   while (WiFi.status() != WL_CONNECTED) {
@@ -46,35 +66,12 @@ void setupWifi() {
   rgbLedWrite(RGB_BUILTIN, 0, 0, 64);
 }
 
-void setup() {
-  // recieves from serial from another ESP32
-  Serial1.begin(115200, SERIAL_8N1, 16, 17);
-  // For debugging
-  Serial.begin(115200);
-
-  setupWifi();
- 
-  connectToMQTT();
-  
-  // setupBT();
-  
-}
-
-void loop() {
-  if (Serial1.available()) {
-    message = Serial1.readStringUntil('\n');
-    Serial.println("Recieved: " + message);
-    sendToMQTT();
-  }
-}
-
-
 void connectToMQTT() {
   // Connect to the MQTT broker
   mqtt.begin(MQTT_BROKER_ADRRESS, MQTT_PORT, network);
   mqtt.setTimeout(30000);
 
-  Serial.print("ESP32 - Connecting to MQTT broker");
+  Serial.print("Connecting to MQTT");
 
   while (!mqtt.connect(CLIENT_ID, MQTT_USERNAME, MQTT_PASSWORD)) {
     Serial.print(".");
@@ -82,7 +79,7 @@ void connectToMQTT() {
   }
 
   if (!mqtt.connected()) {
-    Serial.println("ESP32 - MQTT broker Timeout!");
+    Serial.println("MQTT Timeout!");
     rgbLedWrite(RGB_BUILTIN, 64, 0, 0);
     return;
   }
@@ -92,7 +89,6 @@ void connectToMQTT() {
 
 void sendToMQTT() {
   if (!mqtt.connected()) {
-    Serial.println("Not connected!");
     connectToMQTT();
     rgbLedWrite(RGB_BUILTIN, 0, 0, 64);
   }
