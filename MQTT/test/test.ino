@@ -84,7 +84,7 @@ void connectToMQTT() {
     rgbLedWrite(RGB_BUILTIN, 64, 0, 0);
     return;
   }
-  Serial.println("\nConnected");
+  Serial.println("\nConnected to MQTT");
   rgbLedWrite(RGB_BUILTIN, 0, 64, 0);
 }
 
